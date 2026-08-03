@@ -1,75 +1,91 @@
 import os
 import logging
+import stripe
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
-import stripe
 
-# Configuração de Logs
+# Configuração de logs para diagnóstico no Render
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 
-# Chaves diretas no código (Corrigidas)
-TELEGRAM_TOKEN = "8858786503:AAG29g-9Y3KoDsXCC9b_X7XN2OM4YXw3ZiM"
-STRIPE_KEY = "Sk_live_51TzmtSCrtH66xdGRXP6U1pEcFGMnDHjBPltdgLeEPCBeymLH9W2OXCpS2pE28DUaPsxRo3hFMcZ8Tz9MtTcVqR8R00xKvrxvNW"
+# Leitura segura das variáveis de ambiente do Render
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+STRIPE_KEY = os.environ.get("STRIPE_KEY")
 
-stripe.api_key = STRIPE_KEY
+# Inicializa o Stripe com a chave secreta fornecida no Render
+if STRIPE_KEY:
+    stripe.api_key = STRIPE_KEY
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Responde ao comando /start com o botão de compra."""
     keyboard = [
-        [InlineKeyboardButton("💳 Comprar Conteúdo Exclusivo", callback_data='buy')]
+        [InlineKeyboardButton("💳 Comprar Conteúdo Exclusivo", callback_data="buy_content")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
+    
+    welcome_text = (
         "👋 Olá! Bem-vindo ao bot de conteúdos digitais.\n\n"
-        "Clica no botão abaixo para adquirir o teu acesso:",
-        reply_markup=reply_markup
+        "Clica no botão abaixo para adquirir o teu acesso:"
     )
+    
+    if update.message:
+        await update.message.reply_text(welcome_text, reply_markup=reply_markup)
+    elif update.callback_query:
+        await update.callback_query.message.reply_text(welcome_text, reply_markup=reply_markup)
 
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Gera o link de Checkout do Stripe quando o utilizador clica no botão."""
     query = update.callback_query
     await query.answer()
 
-    if query.data == 'buy':
+    if query.data == "buy_content":
         try:
-            # Criação do link de pagamento na Stripe
+            # Cria a sessão de pagamento no Stripe (10.00 EUR)
             session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
+                payment_method_types=["card"],
                 line_items=[{
-                    'price_data': {
-                        'currency': 'eur',
-                        'product_data': {
-                            'name': 'Acesso Conteúdo VIP',
+                    "price_data": {
+                        "currency": "eur",
+                        "product_data": {
+                            "name": "Acesso ao Conteúdo Exclusivo",
                         },
-                        'unit_amount': 1000, # 10.00 EUR (valor em cêntimos)
+                        "unit_amount": 1000,  # 10.00 EUR em cêntimos
                     },
-                    'quantity': 1,
+                    "quantity": 1,
                 }],
-                mode='payment',
-                success_url='https://t.me/Meubotnegbot',
-                cancel_url='https://t.me/Meubotnegbot',
+                mode="payment",
+                success_url="https://t.me",
+                cancel_url="https://t.me",
             )
             
-            await query.edit_message_text(
-                text=f"🛒 Para finalizar a compra de **10.00€**, clica no link abaixo:\n\n🔗 {session.url}",
-                parse_mode='Markdown'
+            # Envia o link de pagamento gerado ao utilizador
+            await query.message.reply_text(
+                f"✅ **Link de pagamento gerado com sucesso!**\n\n"
+                f"Clica no link para finalizar a compra:\n{session.url}",
+                parse_mode="Markdown"
             )
+
         except Exception as e:
             logging.error(f"Erro Stripe: {e}")
-            await query.edit_message_text(text="❌ Ocorreu um erro ao gerar o pagamento. Tenta novamente mais tarde.")
+            await query.message.reply_text(
+                "❌ Ocorreu um erro ao gerar o pagamento. Tenta novamente mais tarde."
+            )
 
 def main():
-    # Criação da aplicação Telegram
+    """Inicia o bot do Telegram."""
+    if not TELEGRAM_TOKEN:
+        raise ValueError("O TELEGRAM_TOKEN não foi configurado nas variáveis de ambiente do Render!")
+
+    # Cria a aplicação usando estritamente o token do Render
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    # Handlers
+    # Handlers do bot
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_handler))
 
-    # Iniciar o Bot em modo Polling
-    print("Bot a iniciar...")
+    # Inicia a escuta por mensagens
     application.run_polling()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
