@@ -1,40 +1,24 @@
 import os
-import asyncio
-from telegram import Update, LabeledPrice
-from telegram.ext import Application, CommandHandler, ContextTypes, PreCheckoutQueryHandler
+import logging
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
 
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-STRIPE_KEY = os.environ.get("STRIPE_KEY")
+# Token introduzido diretamente para evitar erros de leitura no Render
+TOKEN = "8858786503:AAG29g-9Y3KoDsXCC9b_X7XN20M4YXw3ZiM"
+
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    title = "Teste de Ativação do Sistema"
-    description = "Validação do fluxo de pagamento e liquidação na conta Revolut."
-    payload = "payload-teste-1euro"
-    currency = "EUR"
-    price = 100  # 1.00 EUR em cêntimos
-
-    prices = [LabeledPrice("Teste de Ativação", price)]
-
-    await context.bot.send_invoice(
-        chat_id=chat_id,
-        title=title,
-        description=description,
-        payload=payload,
-        provider_token=STRIPE_KEY,
-        currency=currency,
-        prices=prices,
-        start_parameter="teste-pagamento"
-    )
-
-async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.pre_checkout_query
-    await query.answer(ok=True)
+    await update.message.reply_text("Olá! O teu bot está 100% online e a funcionar perfeitamente!")
 
 def main():
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
+    app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(PreCheckoutQueryHandler(precheckout_callback))
+    
+    print("Bot a iniciar...")
     app.run_polling()
 
 if __name__ == "__main__":
