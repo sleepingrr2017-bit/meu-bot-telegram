@@ -1,94 +1,59 @@
 import os
-import asyncio
+import time
 import threading
-from flask import Flask, redirect, render_template_string
-import stripe
-import aiohttp
+import requests
+from flask import Flask
 
 app = Flask(__name__)
 
-# Configuração da infraestrutura de pagamentos global
-stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+# Lê as credenciais de forma segura através das variáveis de ambiente do Render
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+def fetch_and_send_data():
+    """Tarefa automática que recolhe dados públicos e envia para o Telegram"""
+    while True:
+        try:
+            # Exemplo 100% gratuito: Top notícias de tecnologia/programação da API pública do Hacker News
+            response = requests.get("https://hacker-news.firebaseio.com/v0/topstories.json", timeout=10)
+            if response.status_code == 200:
+                story_ids = response.json()[:3] # Pega apenas os 3 primeiros links mais recentes
+                message = "🔥 **Atualização Automática (Grátis):**\n\n"
+                
+                for s_id in story_ids:
+                    item_res = requests.get(f"https://hacker-news.firebaseio.com/v0/item/{s_id}.json", timeout=10)
+                    if item_res.status_code == 200:
+                        item = item_res.json()
+                        title = item.get("title", "Sem título")
+                        url = item.get("url", "#")
+                        message += f"• [{title}]({url})\n"
+                
+                # Envia para o Telegram se o token e o chat ID estiverem configurados
+                if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+                    url_tg = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+                    payload = {
+                        "chat_id": TELEGRAM_CHAT_ID,
+                        "text": message,
+                        "parse_mode": "Markdown",
+                        "disable_web_page_preview": True
+                    }
+                    requests.post(url_tg, json=payload, timeout=10)
+        except Exception as e:
+            print(f"Erro no ciclo de dados: {e}")
+        
+        # Espera 6 horas (21600 segundos) antes de voltar a executar para poupar recursos
+        time.sleep(21600)
 
 @app.route("/")
-def index():
-    return render_template_string("""
-        <html>
-            <head><title>Ecossistema Autónomo - Limite Máximo</title></head>
-            <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-                <h1>Motor de Super Expansão no Limite Ativo</h1>
-                <p>Enxame multi-tarefa a operar em paralelo na nuvem 24/7.</p>
-                <form action="/comprar" method="POST">
-                    <button type="submit" style="padding: 15px 30px; font-size: 16px; background-color: #635bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Acionar Micro-Transação de Ativo (1.00€)</button>
-                </form>
-            </body>
-        </html>
-    """)
-
-@app.route("/comprar", methods=["POST"])
-def comprar():
-    try:
-        # O micro-ativo otimizado para o limite matemático de lucro pós-taxas
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=[{
-                "price_data": {
-                    "currency": "eur",
-                    "product_data": {
-                        "name": "Micro-Ativo Digital do Enxame Autónomo",
-                    },
-                    "unit_amount": 100, # 1.00 EUR (O limiar matemático exato para rentabilidade)
-                },
-                "quantity": 1,
-            }],
-            mode="payment",
-            success_url="https://" + os.environ.get("RENDER_EXTERNAL_HOSTNAME", "localhost") + "/sucesso",
-            cancel_url="https://" + os.environ.get("RENDER_EXTERNAL_HOSTNAME", "localhost") + "/cancelado",
-        )
-        return redirect(checkout_session.url, code=303)
-    except Exception as e:
-        return str(e), 400
-
-@app.route("/sucesso")
-def sucesso():
-    return "<h1>Micro-transação processada com sucesso no limite do ecossistema.</h1>"
-
-@app.route("/cancelado")
-def cancelado():
-    return "<h1>Transação cancelada.</h1>"
-
-# --- MOTOR DE ENXAME MASSIVO NO LIMITE MÁXIMO DE PERFORMANCE ---
-async def execute_limit_node(session, node_id):
-    try:
-        # Simulação de processamento de dados e verificação de nós de micro-rendimento em paralelo
-        await asyncio.sleep(0.001)
-        return True
-    except Exception:
-        return False
-
-async def maximum_swarm_engine():
-    # Puxa o conector ao limite de concorrência suportado pela infraestrutura cloud
-    connector = aiohttp.TCPConnector(limit=500, force_close=True)
-    async with aiohttp.ClientSession(connector=connector) as session:
-        while True:
-            # Lotes massivos em paralelo (milhares de nós simultâneos)
-            chunk_size = 2000
-            tasks = [execute_limit_node(session, i) for i in range(chunk_size)]
-            await asyncio.gather(*tasks)
-            await asyncio.sleep(2) # Pausa mínima para otimizar o ciclo de CPU
-
-def background_limit_worker():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        loop.run_until_complete(maximum_swarm_engine())
-    except Exception:
-        pass
+def home():
+    """Rota web obrigatória para o Render manter o serviço ativo"""
+    return "Servidor a correr 100% online, gratuito e operacional!", 200
 
 if __name__ == "__main__":
-    # Inicia o enxame de super expansão em thread dedicada de alta prioridade
-    limit_thread = threading.Thread(target=background_limit_worker, daemon=True)
-    limit_thread.start()
+    # Inicia a automação de dados numa thread secundária para não bloquear o servidor web
+    t = threading.Thread(target=fetch_and_send_data, daemon=True)
+    t.start()
     
+    # Inicia o servidor web na porta atribuída automaticamente pelo Render
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
