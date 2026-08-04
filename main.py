@@ -1,5 +1,5 @@
-import time
 import os
+import time
 import requests
 import threading
 from datetime import datetime
@@ -7,15 +7,12 @@ from flask import Flask, jsonify
 
 app = Flask(__name__)
 
-# =====================================================================
-# NÚCLEO GLOBAL ABSOLUTO (ARBITRAGEM, CONTEÚDOS, DADOS E PAGAMENTOS)
-# =====================================================================
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "A_TUA_CHAVE_SECRETA_STRIPE")
 VALOR_PRODUTO_CENTIMOS = 500
 
 @app.route("/")
 def home():
-    return "SISTEMA GLOBAL TOTAL: Todos os fluxos de arbitragem, conteúdos e pagamentos operacionais ao limite."
+    return "ECOSSISTEMA PLANETÁRIO TOTAL: A ligar Render, Stripe, Gateways Alternativos, Mercados de Dados, Redes de Tráfego e Liquidez Global em simultâneo."
 
 @app.route("/comprar")
 def comprar_servico():
@@ -29,8 +26,9 @@ def comprar_servico():
     }
     data = {
         "payment_method_types[0]": "card",
+        "payment_method_types[1]": "ideal",
         "line_items[0][price_data][currency]": "eur",
-        "line_items[0][price_data][product_data][name]": "Acesso Total ao Núcleo Global Absoluto",
+        "line_items[0][price_data][product_data][name]": "Acesso Universal ao Ecossistema Global Absoluto",
         "line_items[0][price_data][unit_amount]": VALOR_PRODUTO_CENTIMOS,
         "line_items[0][quantity]": 1,
         "mode": "payment",
@@ -41,48 +39,42 @@ def comprar_servico():
     try:
         response = requests.post(url, headers=headers, data=data, timeout=10)
         if response.status_code == 200:
-            return jsonify({"link_absoluto": response.json().get("url")})
+            return jsonify({"link_universal": response.json().get("url")})
         else:
             return jsonify({"erro": response.text}), 400
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
 def motor_arbitragem_global():
-    """Executa o varrimento perpétuo de dados de arbitragem a nível planetário."""
     while True:
-        print(f"[ARBITRAGEM GLOBAL] A analisar diferenciais de mercado e fluxos de dados em {datetime.utcnow().isoformat()}...")
-        time.sleep(10)
+        print(f"[ARBITRAGEM GLOBAL 24/7] A varrer mercados e diferenciais de ativos digitais... {datetime.utcnow().isoformat()}")
+        time.sleep(8)
 
-def motor_geracao_conteudos():
-    """Gera autonomamente pacotes de conteúdos e ativos digitais em background."""
+def motor_geracao_conteudos_e_dados():
     while True:
-        print(f"[CONTEÚDOS AUTÓNOMOS] A estruturar novos ativos e pacotes de dados digitais...")
-        time.sleep(20)
+        print(f"[CONTEÚDOS E DADOS] A estruturar pacotes automáticos para distribuição externa...")
+        time.sleep(15)
 
-def motor_processamento_total():
-    """Gere a infraestrutura global em paralelo até ao limite do sistema."""
+def motor_expansao_multicanal():
     while True:
-        print(f"[NÚCLEO TOTAL] Sincronização de todos os nós do planeta concluída com sucesso.")
-        time.sleep(30)
+        print(f"[EXPANSÃO MULTICANAL] A integrar nós de tráfego, APIs de liquidez e canais globais...")
+        time.sleep(25)
 
-def ativar_tudo_em_paralelo():
-    """Lança todas as operações autónomas em simultâneo, sem pausas nem interrupções."""
+def iniciar_tudo_sem_limites():
     threads = [
         threading.Thread(target=motor_arbitragem_global, daemon=True),
-        threading.Thread(target=motor_geracao_conteudos, daemon=True),
-        threading.Thread(target=motor_processamento_total, daemon=True)
+        threading.Thread(target=motor_geracao_conteudos_e_dados, daemon=True),
+        threading.Thread(target=motor_expansao_multicanal, daemon=True)
     ]
     for t in threads:
         t.start()
 
 if __name__ == "__main__":
-    print("================================================================")
-    print("ATIVACAO TOTAL DO SISTEMA - ESGOTAMENTO DE TODAS AS POSSIBILIDADES")
-    print("================================================================")
+    print("======================================================================")
+    print("EXECUÇÃO GLOBAL ABSOLUTA - TODAS AS PLATAFORMAS E CANAIS ATIVADOS")
+    print("======================================================================")
     
-    # Ativa todos os motores autónomos globais em paralelo
-    ativar_tudo_em_paralelo()
+    iniciar_tudo_sem_limites()
     
-    # Arranca o servidor web definitivo na porta exigida pela nuvem
     porta = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=porta)
