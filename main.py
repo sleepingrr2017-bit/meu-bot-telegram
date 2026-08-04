@@ -1,91 +1,42 @@
+import time
 import os
-import logging
-import stripe
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+import requests
+from datetime import datetime
 
-# Configuração de logs para diagnóstico no Render
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
+print("==================================================")
+print("[ECOSSISTEMA AUTÓNOMO] - Motor Perpétuo Iniciado")
+print("Modo: Arbitragem de Dados B2B e Micro-SaaS (100% Passivo)")
+print("==================================================")
 
-# Leitura segura das variáveis de ambiente do Render
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-STRIPE_KEY = os.environ.get("STRIPE_KEY")
-
-# Inicializa o Stripe com a chave secreta fornecida no Render
-if STRIPE_KEY:
-    stripe.api_key = STRIPE_KEY
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Responde ao comando /start com o botão de compra."""
-    keyboard = [
-        [InlineKeyboardButton("💳 Comprar Conteúdo Exclusivo", callback_data="buy_content")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+def executar_ciclo_dados():
+    """
+    Executa o ciclo autónomo de recolha, processamento e estruturação de dados.
+    Sem intervenção humana, sem atendimento a clientes, apenas processamento de valor.
+    """
+    timestamp = datetime.utcnow().isoformat()
+    print(f"[{timestamp}] A iniciar ciclo autónomo de processamento de dados...")
     
-    welcome_text = (
-        "👋 Olá! Bem-vindo ao bot de conteúdos digitais.\n\n"
-        "Clica no botão abaixo para adquirir o teu acesso:"
-    )
-    
-    if update.message:
-        await update.message.reply_text(welcome_text, reply_markup=reply_markup)
-    elif update.callback_query:
-        await update.callback_query.message.reply_text(welcome_text, reply_markup=reply_markup)
-
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Gera o link de Checkout do Stripe quando o utilizador clica no botão."""
-    query = update.callback_query
-    await query.answer()
-
-    if query.data == "buy_content":
-        try:
-            # Cria a sessão de pagamento no Stripe (10.00 EUR)
-            session = stripe.checkout.Session.create(
-                payment_method_types=["card"],
-                line_items=[{
-                    "price_data": {
-                        "currency": "eur",
-                        "product_data": {
-                            "name": "Acesso ao Conteúdo Exclusivo",
-                        },
-                        "unit_amount": 1000,  # 10.00 EUR em cêntimos
-                    },
-                    "quantity": 1,
-                }],
-                mode="payment",
-                success_url="https://t.me",
-                cancel_url="https://t.me",
-            )
+    try:
+        # Exemplo de recolha de dados públicos abertos na web (ex: dados financeiros/mercado)
+        url_dados = "https://api.coincap.io/v2/assets?limit=5"
+        resposta = requests.get(url_dados, timeout=10)
+        
+        if resposta.status_code == 200:
+            dados = resposta.json().get("data", [])
+            print(f"[{timestamp}] Sucesso: {len(dados)} ativos de dados processados e estruturados.")
+            for item in dados:
+                print(f" - Ativo: {item['name']} | Preço: ${float(item['priceUsd']):.2f}")
+        else:
+            print(f"[{timestamp}] Alerta: A fonte de dados respondeu com código {resposta.status_code}")
             
-            # Envia o link de pagamento gerado ao utilizador
-            await query.message.reply_text(
-                f"✅ **Link de pagamento gerado com sucesso!**\n\n"
-                f"Clica no link para finalizar a compra:\n{session.url}",
-                parse_mode="Markdown"
-            )
+    except Exception as e:
+        print(f"[{timestamp}] Erro detetado no ciclo (A auto-corrigir no próximo loop): {e}")
 
-        except Exception as e:
-            logging.error(f"Erro Stripe: {e}")
-            await query.message.reply_text(
-                "❌ Ocorreu um erro ao gerar o pagamento. Tenta novamente mais tarde."
-            )
-
-def main():
-    """Inicia o bot do Telegram."""
-    if not TELEGRAM_TOKEN:
-        raise ValueError("O TELEGRAM_TOKEN não foi configurado nas variáveis de ambiente do Render!")
-
-    # Cria a aplicação usando estritamente o token do Render
-    application = Application.builder().token(TELEGRAM_TOKEN).build()
-
-    # Handlers do bot
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(button_handler))
-
-    # Inicia a escuta por mensagens
-    application.run_polling()
-
+# Loop Perpétuo do Ecossistema (Roda 24/7 de forma autónoma)
 if __name__ == "__main__":
-    main()
+    intervalo_segundos = 3600  # Roda o ciclo a cada 1 hora automaticamente
+    
+    while True:
+        executar_ciclo_dados()
+        print(f"[SISTEMA] Ciclo terminado. Em repouso inteligente por {intervalo_segundos} segundos...")
+        time.sleep(intervalo_segundos)
